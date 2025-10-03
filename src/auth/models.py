@@ -16,7 +16,7 @@ class User(SQLModel, table=True):
     )
     name: str 
     email: str = Field(unique=True, index=True)
-    password_hash: str
+    password_hash: str = Field(exclude=True)
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(pg.TIMESTAMP(timezone=True))
