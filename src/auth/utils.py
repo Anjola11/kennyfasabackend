@@ -19,10 +19,10 @@ def verify_password_hash(password:str, pasword_hash:str):
 
 def create_access_token(user_data:dict, expiry: timedelta) -> str:
     payload = {
-        'sub': user_data.id,
+        'sub': user_data['id'],
         'user': user_data,
-        'exp': datetime.utcnow +expiry,
-        'iat': datetime.utcnow
+        'exp': datetime.utcnow() +expiry,
+        'iat': datetime.utcnow()
     }
 
     token = jwt.encode(

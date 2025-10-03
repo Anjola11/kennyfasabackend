@@ -45,28 +45,35 @@ class UserService(GeneralService):
         session.add(new_user)
         await session.commit()
         await session.refresh(new_user)
-
-        access_token = create_access_token(
-            user_data={
-                'id': str(new_user.uid),
-                "name":new_user.name,
-                "email":new_user.email
-            },
-            expiry=expiry
-        )
-
-        return {
-            'user': new_user,
-            'access_token': access_token,
-            'token_type': 'bearer'
-        }
-    async def user_login(self, user:UserCreate, session:AsyncSession):
-        user_exists = self.user_exists(user.email, session=session)
+        return new_user
 
         
-        if user_exists:
-            password_valid = verify_password_hash(user.password, user_exists.password_hash)
+    async def user_login(self, user:UserCreate, session:AsyncSession):
+        db_user = await self.get_by_email(User,user.email, session=session)
 
+        
+        if db_user:
+            password_valid = verify_password_hash(user.password, db_user.password_hash)
+            if password_valid:
+                access_token = create_access_token(
+                user_data={
+                    'id': str(db_user.uid),
+                    "name":db_user.name,
+                    "email":db_user.email
+                },
+                expiry=expiry
+            )
+
+            return {
+                'user': db_user,
+                'access_token': access_token,
+                'token_type': 'bearer'
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Invalid Email or password'
+            )
 
 
    
