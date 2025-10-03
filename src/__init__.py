@@ -20,8 +20,8 @@ app = FastAPI(
 
 
 
-@app.get("/")
+@app.get("/", tags=["Testing"])
 def testing():
     return "Working"
 
-app.include_router(auth_router, prefix="/api/kennyfasa")
+app.include_router(auth_router, prefix="/api/kennyfasa", tags=["Authentication"])

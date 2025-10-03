@@ -3,9 +3,12 @@ from .models import User, Admin
 from .schemas import UserCreate
 from sqlmodel import select
 from typing import Optional
-from .utils import generate_password_hash
+from .utils import generate_password_hash, create_access_token, verify_password_hash
 from fastapi import HTTPException, status
+from datetime import timedelta
 
+
+expiry = timedelta(hours=1) 
 
 class GeneralService:
     """Generic method to get Admin/user by email"""
@@ -20,14 +23,13 @@ class UserService(GeneralService):
     async def user_exists(self, email, session: AsyncSession) -> bool:
         """Check if a user exists"""
         user = await self.get_by_email(User, email, session)
-        return user is not None
+        return user
    
     async def user_signup(self, user: UserCreate, session: AsyncSession):
         """User signup"""
         user_exists = await self.user_exists(user.email, session)
         
         if user_exists:
-            # Raise an HTTPException instead of returning a string
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this email already exists"
@@ -39,10 +41,34 @@ class UserService(GeneralService):
             email=user.email,
             password_hash=password_hash
         )
+
         session.add(new_user)
         await session.commit()
         await session.refresh(new_user)
-        return new_user
+
+        access_token = create_access_token(
+            user_data={
+                'id': str(new_user.uid),
+                "name":new_user.name,
+                "email":new_user.email
+            },
+            expiry=expiry
+        )
+
+        return {
+            'user': new_user,
+            'access_token': access_token,
+            'token_type': 'bearer'
+        }
+    async def user_login(self, user:UserCreate, session:AsyncSession):
+        user_exists = self.user_exists(user.email, session=session)
+
+        
+        if user_exists:
+            password_valid = verify_password_hash(user.password, user_exists.password_hash)
+
+
+
    
 
 class AdminService(GeneralService):
