@@ -7,6 +7,7 @@ from .utils import generate_password_hash, create_access_token, create_refresh_t
 from fastapi import HTTPException, status
 from datetime import timedelta, datetime
 import jwt
+from sqlalchemy.exc import IntegrityError, DatabaseError
 
 access_token_expiry = timedelta(hours=1) 
 refresh_token_expiry = timedelta(days=7)
@@ -24,6 +25,7 @@ class GeneralService:
         result = await session.exec(statement)
         user = result.first()
         return user
+    
 
 
 class UserService(GeneralService):
@@ -34,7 +36,10 @@ class UserService(GeneralService):
    
     async def user_signup(self, user: UserCreate, session: AsyncSession):
         """User signup"""
-        user_exists = await self.user_exists(user.email, session)
+
+        normalized_email = user.email.lower().strip()
+
+        user_exists = await self.user_exists(normalized_email, session)
         
         if user_exists:
             raise HTTPException(
@@ -44,19 +49,37 @@ class UserService(GeneralService):
         
         password_hash = generate_password_hash(user.password)
         new_user = User(
-            name=user.name,
-            email=user.email,
+            name=user.name.strip().title(),
+            email=normalized_email,
             password_hash=password_hash
         )
 
         session.add(new_user)
-        await session.commit()
-        await session.refresh(new_user)
-        return new_user
+        
+        try:
+            await session.commit()
+            await session.refresh(new_user)
+            return new_user
+        except IntegrityError as e:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to create user: Email may already be in use"
+            )
+        
+        except DatabaseError as e:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error: Failed to create user"
+            )
+
+        
 
         
     async def user_login(self, user:UserCreate, session:AsyncSession):
-        db_user = await self.get_by_email(User,user.email, session=session)
+        normalized_email = user.email.lower().strip()
+        db_user = await self.get_by_email(User,normalized_email, session=session)
 
         
         if db_user:
@@ -129,10 +152,67 @@ class UserService(GeneralService):
 
 
 
-   
-
 class AdminService(GeneralService):
     async def admin_exists(self, email, session: AsyncSession) -> bool:
         """Check if an admin exists"""
-        admin = await self.get_by_email(Admin, email, session)
-        return admin is not None
+        normalized_email = email.lower().strip()
+
+        admin = await self.get_by_email(Admin, normalized_email, session)
+        return admin
+    
+    async def admin_signup_check(self, email:str, session: AsyncSession):
+        normalized_email = email.lower().strip()
+        admin = await self.admin_exists(normalized_email, session)
+
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email not found. Contact administrator to get added."
+            )
+        
+        if admin.password_hash:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Account already activated. Please login instead."
+            )
+        
+        return {"message": "Email verified. Please set your password."}
+        
+        
+    async def admin_signup(self, email:str, password:str, session: AsyncSession):
+        normalized_email = email.lower().strip()
+        admin = await self.admin_exists(normalized_email, session)
+
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Email not found"
+            )
+        
+        if admin.password_hash:  
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password already set. Please login instead."
+            )
+        
+        password_hash = generate_password_hash(password)
+        admin.password_hash = password_hash
+
+
+        try:
+            await session.commit()
+            await session.refresh(admin)
+            return {"message": "Password created successfully"}  
+        except DatabaseError:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update password"
+            )
+            
+
+        
+
+        
+
+

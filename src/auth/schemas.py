@@ -17,6 +17,7 @@ class AdminCreate(BaseModel):
     password: str
     role: str
 
+
 class SignupResponse(BaseModel):
     uid: uuid.UUID
     name: str
