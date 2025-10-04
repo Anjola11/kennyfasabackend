@@ -17,10 +17,11 @@ def verify_password_hash(password:str, pasword_hash:str):
 
     return password_valid
 
-def create_access_token(user_data:dict, expiry: timedelta) -> str:
+def create_access_token(user_data:dict, expiry: timedelta = None) -> str:
     payload = {
         'sub': user_data['id'],
         'user': user_data,
+        'type': 'access',
         'exp': datetime.utcnow() +expiry,
         'iat': datetime.utcnow()
     }
@@ -32,3 +33,28 @@ def create_access_token(user_data:dict, expiry: timedelta) -> str:
     )
 
     return token
+
+def create_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
+    payload ={
+        'sub': user_data_id,
+        'type': 'refresh',
+        'exp': datetime.utcnow() +expiry,
+        'iat': datetime.utcnow()
+    }
+
+    token = jwt.encode(
+        payload= payload,
+        key = Config.JWT_KEY,
+        algorithm= Config.JWT_ALGORITHM
+    )
+
+    return token
+
+def decode_token(token: str) -> dict:
+    payload = jwt.decode(
+        token,
+        key = Config.JWT_KEY,
+        algorithm= Config.JWT_ALGORITHM
+    )
+
+    return payload

@@ -19,3 +19,9 @@ async def user_login(user: UserLogin, session: AsyncSession= Depends(get_session
         user_login = await service.user_login(user, session=session)
 
         return user_login
+
+@auth_router.post("/access_token", status_code=status.HTTP_201_CREATED)
+async def create_new_access_token(token, session: AsyncSession= Depends(get_session)):
+        access_token = await service.create_new_access_token(token, session=session)
+
+        return access_token
