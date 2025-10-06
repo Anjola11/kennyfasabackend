@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from .schemas import UserCreate,  SignupResponse, UserLogin, LoginResponse
+from .schemas import UserCreate,  SignupResponse, UserLogin, AdminLogin, LoginResponse
 from .services import UserAuthServices, AdminAuthServices
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
@@ -21,9 +21,9 @@ async def user_login(user: UserLogin, session: AsyncSession= Depends(get_session
 
         return user_login
 
-@auth_router.post("/access_token", status_code=status.HTTP_201_CREATED)
-async def create_new_access_token(token:str, session: AsyncSession= Depends(get_session)):
-        access_token = await userAuthService.create_new_access_token(token, session=session)
+@auth_router.post("/access_token_user", status_code=status.HTTP_201_CREATED)
+async def create_new_user_access_token(token:str, session: AsyncSession= Depends(get_session)):
+        access_token = await userAuthService.create_new_user_access_token(token, session=session)
 
         return access_token
 
@@ -39,6 +39,15 @@ async def admin_signup(email: str, password, session:AsyncSession=Depends(get_se
 
         return admin_signup
 
+@auth_router.post("/admin_login", status_code=status.HTTP_202_ACCEPTED)
+async def admin_login(user: AdminLogin, session: AsyncSession= Depends(get_session)):
+        admin_login = await adminAuthService.user_login(user, session=session)
 
-# @auth_router.post("/login_admin", status_code=status.HTTP_202_ACCEPTED)
-# async def admin_login(user: )
+        return admin_login
+
+
+@auth_router.post("/access_token_admin", status_code=status.HTTP_201_CREATED)
+async def create_new_admin_access_token(token:str, session: AsyncSession= Depends(get_session)):
+        access_token = await adminAuthService.create_new_admin_access_token(token, session=session)
+
+        return access_token

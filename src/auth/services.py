@@ -3,11 +3,11 @@ from .models import User, Admin
 from .schemas import UserCreate
 from sqlmodel import select
 from typing import Optional
-from .utils import generate_password_hash, create_access_token, create_refresh_token, decode_token, verify_password_hash
+from .utils import generate_password_hash, create_user_access_token, create_user_refresh_token, decode_user_token,create_admin_access_token, create_admin_refresh_token, decode_admin_token,  verify_password_hash
 from fastapi import HTTPException, status
-from datetime import timedelta, datetime
-import jwt
+from datetime import timedelta
 from sqlalchemy.exc import IntegrityError, DatabaseError
+import jwt
 
 access_token_expiry = timedelta(hours=1) 
 refresh_token_expiry = timedelta(days=7)
@@ -20,8 +20,8 @@ class GeneralServices:
         user = result.first()
         return user
     
-    async def get_by_id(self, id: str, session: AsyncSession):
-        statement = select(User).where(User.uid == id)
+    async def get_by_id(self, model, id: str, session: AsyncSession):
+        statement = select(model).where(model.uid == id)
         result = await session.exec(statement)
         user = result.first()
         return user
@@ -85,7 +85,7 @@ class UserAuthServices(GeneralServices):
         if db_user:
             password_valid = verify_password_hash(user.password, db_user.password_hash)
             if password_valid:
-                access_token = create_access_token(
+                access_token = create_user_access_token(
                 user_data={
                     'id': str(db_user.uid),
                     "name":db_user.name,
@@ -93,7 +93,7 @@ class UserAuthServices(GeneralServices):
                 },
                 expiry= access_token_expiry
                 )
-                refresh_token = create_refresh_token(str(db_user.uid), expiry= refresh_token_expiry)
+                refresh_token = create_user_refresh_token(str(db_user.uid), expiry= refresh_token_expiry)
 
                 return {'user': db_user, 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
 
@@ -107,9 +107,9 @@ class UserAuthServices(GeneralServices):
             detail='Invalid Email or password'
         )
 
-    async def create_new_access_token(self,token:str, session= AsyncSession):
+    async def create_new_user_access_token(self,token:str, session= AsyncSession):
         try:
-            payload = decode_token(token)
+            payload = decode_user_token(token)
 
             """Verify if the token s a refresh token"""
             token_type = payload.get('type')
@@ -124,7 +124,7 @@ class UserAuthServices(GeneralServices):
             """Verify the data"""
             user_id = payload.get('sub')
 
-            user = await self.get_by_id(user_id, session)
+            user = await self.get_by_id(User,user_id, session)
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -135,7 +135,7 @@ class UserAuthServices(GeneralServices):
                 "name":user.name,
                 "email":user.email
             }
-            new_access_token = create_access_token(user_data, expiry=access_token_expiry)
+            new_access_token = create_user_access_token(user_data, expiry=access_token_expiry)
 
             return {"access_token":new_access_token, "token_type": "bearer"}
         
@@ -167,7 +167,7 @@ class AdminAuthServices(GeneralServices):
         if not admin:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email not found. Contact administrator to get added."
+                detail="you are  not authorized to signup"
             )
         
         if admin.password_hash:
@@ -209,7 +209,88 @@ class AdminAuthServices(GeneralServices):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update password"
             )
+        
+    async def admin_login(self, email:str, password:str, session:AsyncSession):
+        admin = await self.admin_exists(email, session)
+
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You are not authorized to login"
+            )
+        
+        if not admin.password_hash:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail= "You need to create a password to login"
+            )
+        
+        password_valid = verify_password_hash(password, admin.password_hash)
+
+        if password_valid:
+            access_token = create_admin_access_token(
+                admin_data={
+                    'id': str(admin.uid),
+                    'name': admin.name,
+                    'email': admin.email,
+                    'role':admin.role,
+                },
+                expiry= access_token_expiry
+            )
+            refresh_token = create_admin_refresh_token(str(admin.uid), expiry=refresh_token_expiry)
+
+            return {'admin': admin, 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Invalid Email or password'
+            )
+        
+    async def create_new_admin_access_token(self, token:str, session: AsyncSession):
+        try:
+            payload = decode_admin_token(token)
+
+            """Verify if the token s a refresh token"""
+            token_type = payload.get('type')
+
+            if token_type != 'refresh':
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='Invalid Token type. Expected refresh token.'
+                )
             
+
+            """Verify the data"""
+            admin_id = payload.get('sub')
+
+            admin = await self.get_by_id(Admin, admin_id, session)
+            if not admin:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found"
+                )
+            admin_data={
+                'id': str(admin.uid),
+                "name":admin.name,
+                "email":admin.email
+            }
+            new_access_token = create_admin_access_token(admin_data, expiry=access_token_expiry)
+
+            return {"access_token":new_access_token, "token_type": "bearer"}
+        
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Refresh token has expired. Please login again.'
+            )
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid refresh token'
+            )
+
+
 
         
 

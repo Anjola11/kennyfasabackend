@@ -18,7 +18,10 @@ class AdminCreate(BaseModel):
     password: str
     role: Literal["owner","staff"] = "staff"
 
-
+class AdminLogin(BaseModel):
+    email: str
+    password: str
+    
 class SignupResponse(BaseModel):
     uid: uuid.UUID
     name: str

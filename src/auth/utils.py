@@ -17,7 +17,7 @@ def verify_password_hash(password:str, pasword_hash:str):
 
     return password_valid
 
-def create_access_token(user_data:dict, expiry: timedelta = None) -> str:
+def create_user_access_token(user_data:dict, expiry: timedelta = None) -> str:
     payload = {
         'sub': user_data['id'],
         'user': user_data,
@@ -34,7 +34,7 @@ def create_access_token(user_data:dict, expiry: timedelta = None) -> str:
 
     return token
 
-def create_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
+def create_user_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
     payload ={
         'sub': user_data_id,
         'type': 'refresh',
@@ -50,11 +50,53 @@ def create_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
 
     return token
 
-def decode_token(token: str) -> dict:
+def decode_user_token(token: str) -> dict:
     payload = jwt.decode(
         token,
         key = Config.JWT_KEY,
         algorithm= Config.JWT_ALGORITHM
+    )
+
+    return payload
+
+def create_admin_access_token(admin_data: dict, expiry: timedelta= None) -> str:
+    payload = {
+        'sub': admin_data['id'],
+        'admin': admin_data,
+        'type': 'access',
+        'iat': datetime.utcnow() + expiry,
+        'exp': datetime.utcnow()
+    }
+
+    token = jwt.encode(
+        payload=payload,
+        key= Config.JWT_KEY,
+        algorithm= Config.JWT_ALGORITHM
+    )
+
+    return token
+
+def create_admin_refresh_token(admin_data_id: dict, expiry: timedelta=None) -> str:
+    payload = {
+        'sub': admin_data_id,
+        'type': 'refresh',
+        'exp': datetime.utcnow() + expiry,
+        'iat': datetime.utcnow()
+    }
+
+    token = jwt.encode(
+        payload=payload,
+        key=Config.JWT_KEY,
+        algorithm=Config.JWT_ALGORITHM
+    )
+
+    return token
+
+def decode_admin_token(token):
+    payload = jwt.decode(
+        token,
+        key=Config.JWT_KEY,
+        algorithm=Config.JWT_ALGORITHM
     )
 
     return payload
