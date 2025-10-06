@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from src.db.main import init_db
 from src.auth.routes import auth_router
+from src.admin.routes import admin_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,3 +26,4 @@ def testing():
     return "Working"
 
 app.include_router(auth_router, prefix="/api/kennyfasa", tags=["Authentication"])
+app.include_router(admin_router, prefix="/api/kennyfasa/admin", tags=["Admin Main Services"])

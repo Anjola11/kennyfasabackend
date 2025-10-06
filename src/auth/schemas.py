@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
+from typing import Literal
 
 class UserCreate(BaseModel):
     name: str
@@ -15,7 +16,7 @@ class AdminCreate(BaseModel):
     name: str
     email: str
     password: str
-    role: str
+    role: Literal["owner","staff"] = "staff"
 
 
 class SignupResponse(BaseModel):

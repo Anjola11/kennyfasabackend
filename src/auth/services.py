@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError, DatabaseError
 access_token_expiry = timedelta(hours=1) 
 refresh_token_expiry = timedelta(days=7)
 
-class GeneralService:
+class GeneralServices:
     """Generic method to get Admin/user by email"""
     async def get_by_email(self, model, email: str, session: AsyncSession) -> Optional[object]:
         statement = select(model).where(model.email == email)
@@ -28,7 +28,7 @@ class GeneralService:
     
 
 
-class UserService(GeneralService):
+class UserAuthServices(GeneralServices):
     async def user_exists(self, email, session: AsyncSession) -> bool:
         """Check if a user exists"""
         user = await self.get_by_email(User, email, session)
@@ -152,7 +152,7 @@ class UserService(GeneralService):
 
 
 
-class AdminService(GeneralService):
+class AdminAuthServices(GeneralServices):
     async def admin_exists(self, email, session: AsyncSession) -> bool:
         """Check if an admin exists"""
         normalized_email = email.lower().strip()

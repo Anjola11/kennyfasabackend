@@ -2,7 +2,8 @@ from sqlmodel import SQLModel, Field, Column
 import sqlalchemy.dialects.postgresql as pg
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Literal
+from pydantic import field_validator
 
 def utc_now():
     return datetime.now(timezone.utc)
@@ -37,8 +38,16 @@ class Admin(SQLModel, table=True):
     name: str 
     email: str = Field(unique=True, index=True)
     password_hash: Optional[str] = Field(None)
-    role: str = Field(default="admin")
+    role: str
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(pg.TIMESTAMP(timezone=True))
         )
+
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value):
+        if value not in ["owner","staff"]:
+            raise ValueError("Enter either owner or staff as role")
+        return value
