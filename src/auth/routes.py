@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from .schemas import UserCreate,  SignupResponse, UserLogin, AdminLogin, LoginResponse
+from .schemas import UserCreate,  SignupResponse, UserLogin, AdminloginResponse, UserLoginResponse
 from .services import UserAuthServices, AdminAuthServices
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
@@ -15,7 +15,7 @@ async def user_signup(user: UserCreate, session: AsyncSession= Depends(get_sessi
         new_user = await userAuthService.user_signup(user, session)
         return new_user
 
-@auth_router.post("/login",response_model=LoginResponse, status_code=status.HTTP_202_ACCEPTED)
+@auth_router.post("/login",response_model=UserLoginResponse, status_code=status.HTTP_202_ACCEPTED)
 async def user_login(user: UserLogin, session: AsyncSession= Depends(get_session)):
         user_login = await userAuthService.user_login(user, session=session)
 
@@ -34,14 +34,14 @@ async def admin_signup_check(email:str, session: AsyncSession = Depends(get_sess
         return admin_valid
 
 @auth_router.post("/admin_signup")
-async def admin_signup(email: str, password, session:AsyncSession=Depends(get_session)):
-        admin_signup = await adminAuthService.admin_signup(email, password, session)
+async def activate_admin(email: str, password, session:AsyncSession=Depends(get_session)):
+        admin_activated = await adminAuthService.activate_admin(email, password, session)
 
-        return admin_signup
+        return admin_activated
 
-@auth_router.post("/admin_login", status_code=status.HTTP_202_ACCEPTED)
-async def admin_login(user: AdminLogin, session: AsyncSession= Depends(get_session)):
-        admin_login = await adminAuthService.user_login(user, session=session)
+@auth_router.post("/admin_login",response_model=AdminloginResponse, status_code=status.HTTP_202_ACCEPTED)
+async def admin_login(email, password, session: AsyncSession= Depends(get_session)):
+        admin_login = await adminAuthService.admin_login(email,password, session=session)
 
         return admin_login
 
@@ -51,3 +51,18 @@ async def create_new_admin_access_token(token:str, session: AsyncSession= Depend
         access_token = await adminAuthService.create_new_admin_access_token(token, session=session)
 
         return access_token
+
+from src.auth.utils import decode_user_token
+@auth_router.post("/test_token")
+async def test_token(token: str):
+    try:
+        # Print token info
+        print(f"Token length: {len(token)}")
+        print(f"Token starts with: {token[:10]}")
+        print(f"Token ends with: {token[-10:]}")
+        
+        # Try to decode
+        payload = decode_user_token(token.strip())
+        return {"status": "success", "payload": payload}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

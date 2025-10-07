@@ -95,7 +95,7 @@ class UserAuthServices(GeneralServices):
                 )
                 refresh_token = create_user_refresh_token(str(db_user.uid), expiry= refresh_token_expiry)
 
-                return {'user': db_user, 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
+                return {**db_user.model_dump(), 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
 
             else: 
                 raise HTTPException(
@@ -179,7 +179,7 @@ class AdminAuthServices(GeneralServices):
         return {"message": "Email verified. Please set your password."}
         
         
-    async def admin_signup(self, email:str, password:str, session: AsyncSession):
+    async def activate_admin(self, email:str, password:str, session: AsyncSession):
         normalized_email = email.lower().strip()
         admin = await self.admin_exists(normalized_email, session)
 
@@ -202,13 +202,15 @@ class AdminAuthServices(GeneralServices):
         try:
             await session.commit()
             await session.refresh(admin)
-            return {"message": "Password created successfully"}  
+            return {"message": "admin account activated successfully"}  
         except DatabaseError:
             await session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update password"
             )
+        
+        
         
     async def admin_login(self, email:str, password:str, session:AsyncSession):
         admin = await self.admin_exists(email, session)
@@ -239,7 +241,7 @@ class AdminAuthServices(GeneralServices):
             )
             refresh_token = create_admin_refresh_token(str(admin.uid), expiry=refresh_token_expiry)
 
-            return {'admin': admin, 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
+            return {**admin.model_dump(), 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
 
         else:
             raise HTTPException(

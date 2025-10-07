@@ -27,8 +27,18 @@ class SignupResponse(BaseModel):
     name: str
     email: str
 
-class LoginResponse(BaseModel):
-    user: SignupResponse
+class UserLoginResponse(BaseModel):
+    uid: uuid.UUID
+    name: str
+    email: str
+    access_token:  str
+    refresh_token: str
+    token_type: str
+    
+class AdminloginResponse(BaseModel):
+    uid: uuid.UUID
+    name: str
+    email: str
     access_token:  str
     refresh_token: str
     token_type: str

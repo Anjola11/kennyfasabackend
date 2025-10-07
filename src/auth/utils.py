@@ -22,8 +22,8 @@ def create_user_access_token(user_data:dict, expiry: timedelta = None) -> str:
         'sub': user_data['id'],
         'user': user_data,
         'type': 'access',
-        'exp': datetime.utcnow() +expiry,
-        'iat': datetime.utcnow()
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() +expiry
     }
 
     token = jwt.encode(
@@ -38,8 +38,8 @@ def create_user_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
     payload ={
         'sub': user_data_id,
         'type': 'refresh',
-        'exp': datetime.utcnow() +expiry,
-        'iat': datetime.utcnow()
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() +expiry
     }
 
     token = jwt.encode(
@@ -54,7 +54,7 @@ def decode_user_token(token: str) -> dict:
     payload = jwt.decode(
         token,
         key = Config.JWT_KEY,
-        algorithm= Config.JWT_ALGORITHM
+        algorithms=[Config.JWT_ALGORITHM]
     )
 
     return payload
@@ -64,8 +64,8 @@ def create_admin_access_token(admin_data: dict, expiry: timedelta= None) -> str:
         'sub': admin_data['id'],
         'admin': admin_data,
         'type': 'access',
-        'iat': datetime.utcnow() + expiry,
-        'exp': datetime.utcnow()
+        'iat': datetime.utcnow(),
+        'exp': datetime.utcnow() + expiry
     }
 
     token = jwt.encode(
@@ -80,8 +80,8 @@ def create_admin_refresh_token(admin_data_id: dict, expiry: timedelta=None) -> s
     payload = {
         'sub': admin_data_id,
         'type': 'refresh',
+        'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + expiry,
-        'iat': datetime.utcnow()
     }
 
     token = jwt.encode(
@@ -96,7 +96,7 @@ def decode_admin_token(token):
     payload = jwt.decode(
         token,
         key=Config.JWT_KEY,
-        algorithm=Config.JWT_ALGORITHM
+        algorithms=[Config.JWT_ALGORITHM]
     )
 
     return payload

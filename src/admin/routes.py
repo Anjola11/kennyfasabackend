@@ -3,12 +3,16 @@ from .services import AdminMainServices
 from .schemas import AdminAdd
 from src.db.main import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
+from src.auth.dependencies import get_super_admin
+from src.auth.models import Admin
+from src.admin.schemas import AdminResponse
 
 admin_router = APIRouter()
 adminMainService = AdminMainServices()
 
-@admin_router.post("/add_staff", status_code=status.HTTP_201_CREATED)
-async def add_admin(admin: AdminAdd, session: AsyncSession = Depends(get_session)):
-    admin = await adminMainService.add_admin(admin, session)
-    return admin
+
+@admin_router.post("/add_staff",response_model=AdminResponse, status_code=status.HTTP_201_CREATED)
+async def add_admin(new_admin: AdminAdd, session: AsyncSession = Depends(get_session), admin: Admin = Depends(get_super_admin)):
+    new_admin = await adminMainService.add_admin(new_admin, session)
+    return new_admin
 

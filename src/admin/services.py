@@ -25,7 +25,7 @@ class AdminMainServices():
 
         try:
             await session.commit()
-            return {"Admin added succesfully"}
+            return admin
         except DatabaseError as e:
             await session.rollback()
             raise HTTPException(
