@@ -32,4 +32,25 @@ class AdminMainServices():
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail = "Failed to add admin"
             )
+        
+    async def delete_admin(self, admin, session: AsyncSession):
+        admin_exists = await adminAuthService.admin_exists(admin.email, session)
+
+        if not admin_exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Admin not found"
+            )
+    
+        try:
+            await session.delete(admin_exists)
+            await session.commit()
+            return {"message": "Admin deleted successfully"}
+        except DatabaseError:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete admin"
+            )
+
 

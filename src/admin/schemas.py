@@ -7,7 +7,9 @@ class AdminAdd(BaseModel):
     email: str
     role: Literal["owner","staff"] = "staff"
 
-
+class AdminDelete(BaseModel):
+    name: str
+    email: str
 class AdminResponse(BaseModel):
     name: str
     email: str
