@@ -8,8 +8,8 @@ from pydantic import field_validator
 def utc_now():
     return datetime.now(timezone.utc)
 
-class User(SQLModel, table=True):
-    __tablename__ = "users"
+class Customer(SQLModel, table=True):
+    __tablename__ = "customers"
 
     uid: uuid.UUID = Field(
         default_factory=uuid.uuid4, 

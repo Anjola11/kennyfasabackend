@@ -3,7 +3,7 @@ from .services import AdminMainServices
 from .schemas import AdminAdd
 from src.db.main import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.auth.dependencies import get_super_admin
+from src.dependencies import get_super_admin
 from src.auth.models import Admin
 from src.admin.schemas import AdminResponse, AdminDelete
 

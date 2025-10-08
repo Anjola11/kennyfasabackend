@@ -1,9 +1,9 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .models import User, Admin
-from .schemas import UserCreate
+from .models import Customer, Admin
+from .schemas import CustomerCreate
 from sqlmodel import select
 from typing import Optional
-from .utils import generate_password_hash, create_user_access_token, create_user_refresh_token, decode_user_token,create_admin_access_token, create_admin_refresh_token, decode_admin_token,  verify_password_hash
+from .utils import generate_password_hash, create_customer_access_token, create_customer_refresh_token, decode_customer_token,create_admin_access_token, create_admin_refresh_token, decode_admin_token,  verify_password_hash
 from fastapi import HTTPException, status
 from datetime import timedelta
 from sqlalchemy.exc import IntegrityError, DatabaseError
@@ -13,89 +13,89 @@ access_token_expiry = timedelta(hours=1)
 refresh_token_expiry = timedelta(days=7)
 
 class GeneralServices:
-    """Generic method to get Admin/user by email"""
+    """Generic method to get Admin/customer by email"""
     async def get_by_email(self, model, email: str, session: AsyncSession) -> Optional[object]:
         statement = select(model).where(model.email == email)
         result = await session.exec(statement)
-        user = result.first()
-        return user
+        customer = result.first()
+        return customer
     
     async def get_by_id(self, model, id: str, session: AsyncSession):
         statement = select(model).where(model.uid == id)
         result = await session.exec(statement)
-        user = result.first()
-        return user
+        customer = result.first()
+        return customer
     
 
 
-class UserAuthServices(GeneralServices):
-    async def user_exists(self, email, session: AsyncSession) -> bool:
-        """Check if a user exists"""
-        user = await self.get_by_email(User, email, session)
-        return user
+class CustomerAuthServices(GeneralServices):
+    async def customer_exists(self, email, session: AsyncSession) -> bool:
+        """Check if a customer exists"""
+        customer = await self.get_by_email(Customer, email, session)
+        return customer
    
-    async def user_signup(self, user: UserCreate, session: AsyncSession):
-        """User signup"""
+    async def customer_signup(self, customer: CustomerCreate, session: AsyncSession):
+        """Customer signup"""
 
-        normalized_email = user.email.lower().strip()
+        normalized_email = customer.email.lower().strip()
 
-        user_exists = await self.user_exists(normalized_email, session)
+        customer_exists = await self.customer_exists(normalized_email, session)
         
-        if user_exists:
+        if customer_exists:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email already exists"
+                detail="Customer with this email already exists"
             )
         
-        password_hash = generate_password_hash(user.password)
-        new_user = User(
-            name=user.name.strip().title(),
+        password_hash = generate_password_hash(customer.password)
+        new_customer = Customer(
+            name=customer.name.strip().title(),
             email=normalized_email,
             password_hash=password_hash
         )
 
-        session.add(new_user)
+        session.add(new_customer)
         
         try:
             await session.commit()
-            await session.refresh(new_user)
-            return new_user
+            await session.refresh(new_customer)
+            return new_customer
         except IntegrityError as e:
             await session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to create user: Email may already be in use"
+                detail="Failed to create customer: Email may already be in use"
             )
         
         except DatabaseError as e:
             await session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal server error: Failed to create user"
+                detail="Internal server error: Failed to create customer"
             )
 
         
 
         
-    async def user_login(self, user:UserCreate, session:AsyncSession):
-        normalized_email = user.email.lower().strip()
-        db_user = await self.get_by_email(User,normalized_email, session=session)
+    async def customer_login(self, customer:CustomerCreate, session:AsyncSession):
+        normalized_email = customer.email.lower().strip()
+        db_customer = await self.get_by_email(Customer,normalized_email, session=session)
 
         
-        if db_user:
-            password_valid = verify_password_hash(user.password, db_user.password_hash)
+        if db_customer:
+            password_valid = verify_password_hash(customer.password, db_customer.password_hash)
             if password_valid:
-                access_token = create_user_access_token(
-                user_data={
-                    'id': str(db_user.uid),
-                    "name":db_user.name,
-                    "email":db_user.email
+                access_token = create_customer_access_token(
+                customer_data={
+                    'id': str(db_customer.uid),
+                    "name":db_customer.name,
+                    "email":db_customer.email
                 },
                 expiry= access_token_expiry
                 )
-                refresh_token = create_user_refresh_token(str(db_user.uid), expiry= refresh_token_expiry)
+                refresh_token = create_customer_refresh_token(str(db_customer.uid), expiry= refresh_token_expiry)
 
-                return {**db_user.model_dump(), 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
+                return {**db_customer.model_dump(), 'access_token': access_token, 'refresh_token':refresh_token, 'token_type': 'bearer'}
 
             else: 
                 raise HTTPException(
@@ -107,9 +107,9 @@ class UserAuthServices(GeneralServices):
             detail='Invalid Email or password'
         )
 
-    async def create_new_user_access_token(self,token:str, session= AsyncSession):
+    async def create_new_customer_access_token(self,token:str, session= AsyncSession):
         try:
-            payload = decode_user_token(token)
+            payload = decode_customer_token(token)
 
             """Verify if the token s a refresh token"""
             token_type = payload.get('type')
@@ -122,20 +122,20 @@ class UserAuthServices(GeneralServices):
           
         
             """Verify the data"""
-            user_id = payload.get('sub')
+            customer_id = payload.get('sub')
 
-            user = await self.get_by_id(User,user_id, session)
-            if not user:
+            customer = await self.get_by_id(Customer,customer_id, session)
+            if not customer:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found"
+                    detail="Customer not found"
                 )
-            user_data={
-                'id': str(user.uid),
-                "name":user.name,
-                "email":user.email
+            customer_data={
+                'id': str(customer.uid),
+                "name":customer.name,
+                "email":customer.email
             }
-            new_access_token = create_user_access_token(user_data, expiry=access_token_expiry)
+            new_access_token = create_customer_access_token(customer_data, expiry=access_token_expiry)
 
             return {"access_token":new_access_token, "token_type": "bearer"}
         
@@ -270,7 +270,7 @@ class AdminAuthServices(GeneralServices):
             if not admin:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found"
+                    detail="Customer not found"
                 )
             admin_data={
                 'id': str(admin.uid),

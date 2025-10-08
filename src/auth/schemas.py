@@ -3,12 +3,12 @@ from datetime import datetime
 import uuid
 from typing import Literal
 
-class UserCreate(BaseModel):
+class CustomerCreate(BaseModel):
     name: str
     email: str
     password: str
 
-class UserLogin(BaseModel):
+class CustomerLogin(BaseModel):
     email: str
     password: str
 
@@ -16,7 +16,7 @@ class AdminCreate(BaseModel):
     name: str
     email: str
     password: str
-    role: Literal["owner","staff"] = "staff"
+    role: str
 
 class AdminLogin(BaseModel):
     email: str
@@ -27,7 +27,7 @@ class SignupResponse(BaseModel):
     name: str
     email: str
 
-class UserLoginResponse(BaseModel):
+class CustomerLoginResponse(BaseModel):
     uid: uuid.UUID
     name: str
     email: str

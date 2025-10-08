@@ -17,10 +17,10 @@ def verify_password_hash(password:str, pasword_hash:str):
 
     return password_valid
 
-def create_user_access_token(user_data:dict, expiry: timedelta = None) -> str:
+def create_customer_access_token(customer_data:dict, expiry: timedelta = None) -> str:
     payload = {
-        'sub': user_data['id'],
-        'user': user_data,
+        'sub': customer_data['id'],
+        'customer': customer_data,
         'type': 'access',
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() +expiry
@@ -34,9 +34,9 @@ def create_user_access_token(user_data:dict, expiry: timedelta = None) -> str:
 
     return token
 
-def create_user_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
+def create_customer_refresh_token(customer_data_id: str, expiry: timedelta=None) -> str:
     payload ={
-        'sub': user_data_id,
+        'sub': customer_data_id,
         'type': 'refresh',
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() +expiry
@@ -50,7 +50,7 @@ def create_user_refresh_token(user_data_id: str, expiry: timedelta=None) -> str:
 
     return token
 
-def decode_user_token(token: str) -> dict:
+def decode_customer_token(token: str) -> dict:
     payload = jwt.decode(
         token,
         key = Config.JWT_KEY,

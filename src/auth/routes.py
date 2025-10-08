@@ -1,29 +1,29 @@
 from fastapi import APIRouter, Depends, status
-from .schemas import UserCreate,  SignupResponse, UserLogin, AdminloginResponse, UserLoginResponse
-from .services import UserAuthServices, AdminAuthServices
+from .schemas import CustomerCreate,  SignupResponse, CustomerLogin, AdminloginResponse, CustomerLoginResponse
+from .services import CustomerAuthServices, AdminAuthServices
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 
 
 auth_router = APIRouter()
-userAuthService = UserAuthServices()
+customerAuthService = CustomerAuthServices()
 adminAuthService = AdminAuthServices()
 
 @auth_router.post("/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
-async def user_signup(user: UserCreate, session: AsyncSession= Depends(get_session)):
+async def customer_signup(customer: CustomerCreate, session: AsyncSession= Depends(get_session)):
         
-        new_user = await userAuthService.user_signup(user, session)
-        return new_user
+        new_customer = await customerAuthService.customer_signup(customer, session)
+        return new_customer
 
-@auth_router.post("/login",response_model=UserLoginResponse, status_code=status.HTTP_202_ACCEPTED)
-async def user_login(user: UserLogin, session: AsyncSession= Depends(get_session)):
-        user_login = await userAuthService.user_login(user, session=session)
+@auth_router.post("/login",response_model=CustomerLoginResponse, status_code=status.HTTP_202_ACCEPTED)
+async def customer_login(customer: CustomerLogin, session: AsyncSession= Depends(get_session)):
+        customer_login = await customerAuthService.customer_login(customer, session=session)
 
-        return user_login
+        return customer_login
 
-@auth_router.post("/access_token_user", status_code=status.HTTP_201_CREATED)
-async def create_new_user_access_token(token:str, session: AsyncSession= Depends(get_session)):
-        access_token = await userAuthService.create_new_user_access_token(token, session=session)
+@auth_router.post("/access_token_customer", status_code=status.HTTP_201_CREATED)
+async def create_new_customer_access_token(token:str, session: AsyncSession= Depends(get_session)):
+        access_token = await customerAuthService.create_new_customer_access_token(token, session=session)
 
         return access_token
 
@@ -52,7 +52,7 @@ async def create_new_admin_access_token(token:str, session: AsyncSession= Depend
 
         return access_token
 
-from src.auth.utils import decode_user_token
+from src.auth.utils import decode_customer_token
 @auth_router.post("/test_token")
 async def test_token(token: str):
     try:
@@ -62,7 +62,7 @@ async def test_token(token: str):
         print(f"Token ends with: {token[-10:]}")
         
         # Try to decode
-        payload = decode_user_token(token.strip())
+        payload = decode_customer_token(token.strip())
         return {"status": "success", "payload": payload}
     except Exception as e:
         return {"status": "error", "message": str(e)}

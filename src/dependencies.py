@@ -1,20 +1,20 @@
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException, status
-from src.auth.utils import decode_user_token, decode_admin_token
+from src.auth.utils import decode_customer_token, decode_admin_token
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.main import get_session
 from src.auth.services import GeneralServices
-from src.auth.models import Admin, User
+from src.auth.models import Admin, Customer
 import jwt
 
 security = HTTPBearer()
 general_services = GeneralServices()
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), session: AsyncSession =Depends(get_session)):
+async def get_current_customer(credentials: HTTPAuthorizationCredentials = Depends(security), session: AsyncSession =Depends(get_session)):
 
     try:
         token = credentials.credentials.strip()
-        payload = decode_user_token(token)
+        payload = decode_customer_token(token)
 
         if payload.get("type") != 'access':
             raise HTTPException(
@@ -22,24 +22,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                 detail="invalid Token"
             )
         
-        user_id = payload.get('sub')
+        customer_id = payload.get('sub')
 
-        if not user_id:
+        if not customer_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='invalid token'
             )
         
-        user = await general_services.get_by_id(User, user_id, session)
+        customer = await general_services.get_by_id(Customer, customer_id, session)
 
-        if not user:
+        if not customer:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='User not found'
+                detail='Customer not found'
             )
         
         
-        return user
+        return customer
     
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -81,7 +81,7 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
         if not admin:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='User not found'
+                detail='Customer not found'
             )
         
         if not admin.password_hash:
