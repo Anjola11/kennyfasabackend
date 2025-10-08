@@ -17,7 +17,7 @@ class Order(SQLModel, table=True):
     description: str
     price: float
     quantity: int
-    subtotal: float = Field(default=0.0)
+    subtotal: float = Field(default=None)
     status: str = Field(default='pending')
     received_date: datetime = Field(
         default_factory= utc_now,

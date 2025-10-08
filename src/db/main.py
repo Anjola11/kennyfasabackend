@@ -13,7 +13,8 @@ async def init_db():
     async with engine.begin() as conn:
         from src.auth.models import Customer
         from src.auth.models import Admin
-
+        from src.order.models import Order
+        
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
